@@ -39,4 +39,8 @@ def extract_data(text:str)->AttestationVente:
         if res.startswith("json"):
             res = res[4:]
     res = res.strip()
-    return AttestationVente.model_validate_json(res)
+    try:
+        return AttestationVente.model_validate_json(res)
+    except Exception as e:
+        print(f"Error validating JSON: {e}")
+        raise ValueError({"error": "Unable to validate extracted data. Please try again."})

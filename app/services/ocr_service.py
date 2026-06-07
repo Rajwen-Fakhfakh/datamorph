@@ -25,8 +25,6 @@ def extract_text_from_pdf(path:str)->str:
 
         img_bytes=page.get_pixmap().tobytes() # convert the image to bytes
         img_b64=base64.b64encode(img_bytes).decode('utf-8') # encode the bytes to base64 string
-              
-
 
         res+= client_ocr(img_b64) #res from mistral ocr
     return res
