@@ -5,18 +5,20 @@ import os
 
 app = FastAPI()
 
+# Health Check Endpoint
 
 @app.get("/Health")
 def read_health():
     return {"message": "Hello, World!"}
 
 
+# Data Extraction Endpoint
 @app.post("/extract")
 def extract(file: UploadFile):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail={"error": "Invalid file type. Please upload a PDF."})
 
-    os.makedirs("temp", exist_ok=True)
+    os.makedirs("temp", exist_ok=True) 
     file_path=f"temp/{file.filename}"
     with open(file_path, "wb") as f:
         f.write(file.file.read())
@@ -31,8 +33,8 @@ def extract(file: UploadFile):
         data = extract_data(ocrText) # extract data from text and return the result
 
     except ValueError as e:
-        os.remove(file_path)
-        raise HTTPException(status_code=422, detail={"error": str(e)})
+        os.remove(file_path)    
+        raise HTTPException(status_code=422, detail={"error": str(e)}) 
 
 
     os.remove(file_path)
