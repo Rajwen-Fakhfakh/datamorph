@@ -55,7 +55,7 @@ Accède à `http://localhost:8000/docs` pour tester l'API via Swagger UI.
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | GET | `/health` | Vérifie que l'API tourne |
-| POST | `/extract` | Upload PDF → retourne un JSON structuré |
+| POST | `/extract` | Upload PDF(exemple_attestation_vente.pdf) → retourne un JSON structuré |
 
 ## 📌 Version Actuelle
 
