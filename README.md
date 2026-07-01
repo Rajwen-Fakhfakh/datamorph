@@ -14,13 +14,13 @@ DataMorph est une API intelligente qui extrait automatiquement les données stru
 \```
 datamorph/
 ├── app/
-│   ├── main.py              # Endpoints FastAPI
+│   ├── main.py          # Endpoints FastAPI
 │   ├── services/
 │   │   ├── ocr_service.py   # PDF → texte via Mistral OCR
 │   │   └── llm_service.py   # texte → JSON via Mistral LLM
 │   └── models/
-│       └── schemas.py       # Modèles Pydantic
-├── .env                     # Clés API (non commité)
+│       └── schemas.py   # Modèles Pydantic
+├── .env                  # Clés API (non commité)
 ├── requirements.txt
 └── README.md
 \```
