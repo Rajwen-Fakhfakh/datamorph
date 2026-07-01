@@ -11,7 +11,7 @@ DataMorph est une API intelligente qui extrait automatiquement les données stru
 
 ## 📁 Structure du Projet
 
-\```
+```
 datamorph/
 ├── app/
 │   ├── main.py          # Endpoints FastAPI
@@ -23,30 +23,30 @@ datamorph/
 ├── .env                  # Clés API (non commité)
 ├── requirements.txt
 └── README.md
-\```
+```
 
 ## ⚙️ Installation
 
-\```bash
+```bash
 git clone https://github.com/Rajwen-Fakhfakh/datamorph
 cd datamorph
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
-\```
+```
 
 ## 🔑 Configuration
 
 Créer un fichier `.env` :
-\```
+```
 MISTRAL_API_KEY=ta_clé_api
-\```
+```
 
 ## ▶️ Lancement
 
-\```bash
+```bash
 uvicorn app.main:app --reload
-\```
+```
 
 Accède à `http://localhost:8000/docs` pour tester l'API via Swagger UI.
 
