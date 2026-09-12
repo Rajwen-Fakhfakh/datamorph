@@ -1,0 +1,133 @@
+# Nom affiché dans l'onglet "Actions" de GitHub, et sur le badge de statut
+name: CI/CD
+
+# Déclencheurs : quand ce pipeline doit se lancer
+on:
+  push:
+    branches: [main]          # à chaque push direct sur main
+  pull_request:
+    branches: [main]          # à chaque PR qui vise main (avant le merge)
+
+jobs:
+  test:                        # nom interne du job (visible dans les logs)
+    runs-on: ubuntu-latest      # machine virtuelle fournie par GitHub, recréée à zéro à chaque run
+
+    env:
+      # Variable d'environnement injectée pour toute la durée du job.
+      # app/services/*.py lisent MISTRAL_API_KEY dès l'import du module
+      # (client = Mistral(api_key=...)) : sans cette valeur, l'import planterait
+      # et ferait échouer TOUS les tests, même ceux qui ne touchent pas à Mistral.
+      # Une vraie clé ne doit JAMAIS être écrite ici en clair : elle irait dans
+      # Settings > Secrets and variables > Actions, puis appelée via
+      # ${{ secrets.MISTRAL_API_KEY }}. Ici on n'a pas besoin d'une vraie clé
+      # car tous nos tests mockent les appels réels à l'API.
+      MISTRAL_API_KEY: dummy-key-for-ci
+
+    # Liste ordonnée des actions exécutées les unes après les autres.
+    # Si une étape échoue, les suivantes ne s'exécutent pas (par défaut).
+    steps:
+
+      # Étape 1 : récupère le contenu du repo sur la VM.
+      # Sans ça, la VM est vide et il n'y a rien à tester.
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # Étape 2 : installe Python 3.11 sur la VM (version identique à celle
+      # utilisée en local, pour éviter les écarts de comportement).
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"          # met en cache les dépendances pip entre les runs -> accélère les prochains lancements
+
+      # Étape 3 : installe les dépendances du projet + les outils de CI
+      # (ruff et pytest ne sont utiles qu'en CI/dev, donc pas forcément
+      # dans requirements.txt qui liste plutôt les deps de prod).
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest
+
+      # Étape 4 : linter -> vérifie la qualité/le style du code
+      # (imports inutilisés, erreurs de syntaxe, lignes trop longues...).
+      # Si ruff trouve un problème, il retourne un code d'erreur -> le job échoue ici.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # Étape 5 : lance la suite de tests.
+      # "-v" (verbose) affiche chaque test individuellement dans les logs,
+      # plus lisible que le mode silencieux par défaut.
+      - name: Lancer les tests (pytest)
+        run: pytest tests/ -v
+
+  # ---------------------------------------------------------------------
+  # Job 2 : build de l'image Docker + déploiement sur Cloud Run.
+  # "needs: test" fait que ce job attend que "test" se termine, et ne se
+  # lance QUE s'il a réussi -> jamais de déploiement d'un code qui casse
+  # les tests. Le "if" en plus restreint le déploiement à un vrai push
+  # sur main (pas à une simple PR, où on veut juste valider le code sans
+  # rien déployer).
+  # ---------------------------------------------------------------------
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}   # ex: datamorph-prod
+      REGION: ${{ secrets.GCP_REGION }}           # ex: europe-west1
+      SERVICE_NAME: datamorph                     # nom du service Cloud Run
+      REPO_NAME: datamorph-repo                   # nom du dépôt Artifact Registry
+
+    steps:
+
+      # Étape 1 : récupère le code (le Dockerfile en a besoin pour build l'image).
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # Étape 2 : authentification auprès de GCP avec la clé JSON du service
+      # account, stockée en secret GitHub. Cette action configure ensuite
+      # automatiquement les credentials pour gcloud ET pour docker (étapes
+      # suivantes) -> pas besoin de gérer soi-même un fichier de clé sur le disque.
+      - name: Authentification GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Étape 3 : installe et configure la CLI gcloud sur la VM.
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      # Étape 4 : autorise Docker à pousser des images vers Artifact Registry
+      # en réutilisant les credentials gcloud déjà configurés à l'étape 2.
+      - name: Configurer Docker pour Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # Étape 5 : build de l'image à partir du Dockerfile à la racine.
+      # Deux tags : le SHA du commit (traçabilité exacte -> on sait quelle
+      # version du code tourne en prod) et "latest" (toujours la dernière version).
+      - name: Build de l'image Docker
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+
+      # Étape 6 : envoi de l'image construite vers Artifact Registry.
+      - name: Push de l'image vers Artifact Registry
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # Étape 7 : déploie la nouvelle image sur Cloud Run.
+      # Note : la vraie MISTRAL_API_KEY n'est PAS injectée ici. Elle doit être
+      # configurée directement sur le service Cloud Run (via la console,
+      # Variables & Secrets), pour ne jamais transiter par le pipeline CI.
+      - name: Déployer sur Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
