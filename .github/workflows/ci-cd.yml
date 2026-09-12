@@ -122,6 +122,12 @@ jobs:
           docker push "$IMAGE:latest"
 
       # Étape 7 : déploie la nouvelle image sur Cloud Run.
+      # "service_account" force Cloud Run à faire tourner le conteneur avec
+      # datamorph-deployer, plutôt qu'avec le compte de service par défaut
+      # de Compute Engine (qui n'existe même pas ici car l'API Compute Engine
+      # n'est pas activée sur ce projet) -> évite le problème d'actAs, et
+      # c'est aussi une meilleure pratique que d'utiliser le compte par défaut,
+      # qui a historiquement des droits larges (rôle Editor) sur le projet.
       # Note : la vraie MISTRAL_API_KEY n'est PAS injectée ici. Elle doit être
       # configurée directement sur le service Cloud Run (via la console,
       # Variables & Secrets), pour ne jamais transiter par le pipeline CI.
@@ -131,3 +137,4 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          service_account: datamorph-deployer@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
