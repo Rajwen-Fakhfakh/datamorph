@@ -3,7 +3,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models.schemas import AttestationVente, Owner, Civility, OwnerType, Origine
+from app.models.schemas import AttestationVente, Civility, Origine, Owner, OwnerType
 
 client = TestClient(app)
 

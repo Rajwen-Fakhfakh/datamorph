@@ -2,18 +2,17 @@ import pytest
 from pydantic import ValidationError
 
 from app.models.schemas import (
-    AttestationVente,
-    Owner,
     Adresse,
-    Lot,
+    AttestationVente,
     Cadastre,
-    Origine,
-    TypeLot,
     Civility,
+    Lot,
     MaritalStatus,
+    Origine,
+    Owner,
     OwnerType,
+    TypeLot,
 )
-
 
 # ---------- Fixtures : données de base valides, réutilisables ----------
 

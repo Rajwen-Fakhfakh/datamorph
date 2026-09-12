@@ -1,6 +1,7 @@
-from pydantic import BaseModel,Field,field_validator
 from enum import Enum
-from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
 
 # ENUMS  
 class Origine(str, Enum):
@@ -37,16 +38,16 @@ class Owner(BaseModel):
     civility: Civility = Field(description="Civilité : Monsieur, Madame ou Mademoiselle")
     first_name: str = Field(description="Prénom de la personne")
     last_name: str = Field(description="Nom de famille de la personne")
-    nationality: Optional[str] = Field(None, description="Nationalité de la personne ex: Française")
-    profession: Optional[str] = Field(None, description="Profession ou fonction de la personne")
-    email: Optional[str] = Field(None, description="Adresse email")
-    phone: Optional[str] = Field(None, min_length=10,  description="Numéro de téléphone")
+    nationality: str | None = Field(None, description="Nationalité de la personne ex: Française")
+    profession: str | None = Field(None, description="Profession ou fonction de la personne")
+    email: str | None = Field(None, description="Adresse email")
+    phone: str | None = Field(None, min_length=10,  description="Numéro de téléphone")
     type: OwnerType = Field(description="Type : Physique pour une personne physique, Morale pour une société")    
-    entreprise_name: Optional[str] = Field(None, description="Nom de la société si type est Morale")
-    birth_date: Optional[str] = Field(None, description="Date de naissance au format jj/mm/yyyy")
-    birth_place: Optional[str] = Field(None, description="Ville et pays de naissance")
-    siren: Optional[str] = Field(None, description="Numéro SIREN — obligatoire si type est Morale")
-    marital_status: Optional[MaritalStatus] = Field(None, description="Situation maritale : Célibataire, Marié,Mariée Divorcé ou Veuf")
+    entreprise_name: str | None = Field(None, description="Nom de la société si type est Morale")
+    birth_date: str | None = Field(None, description="Date de naissance au format jj/mm/yyyy")
+    birth_place: str | None = Field(None, description="Ville et pays de naissance")
+    siren: str | None = Field(None, description="Numéro SIREN — obligatoire si type est Morale")
+    marital_status: MaritalStatus | None = Field(None, description="Situation maritale : Célibataire, Marié,Mariée Divorcé ou Veuf")
     
     #Validation spécifique pour la situation maritale : accepter différentes variantes et les normaliser en une valeur de l'enum MaritalStatus
     @field_validator("marital_status",mode="before")
@@ -73,37 +74,37 @@ class Owner(BaseModel):
         return value
 
 class Adresse(BaseModel):
-    adress: Optional[str] = Field(None, description="Numéro et nom de la rue ex: 32 rue des Lilas")
-    city: Optional[str] = Field(None, description="Ville")
-    zipcode: Optional[str] = Field(None,description="Code postal à 5 chiffres")
+    adress: str | None = Field(None, description="Numéro et nom de la rue ex: 32 rue des Lilas")
+    city: str | None = Field(None, description="Ville")
+    zipcode: str | None = Field(None,description="Code postal à 5 chiffres")
 
 class Lot(BaseModel):
     num_lot: str = Field(description="Numéro du lot dans la copropriété")
     type: TypeLot = Field(description="Type de lot : Appartement, Cave, Parking, etc.")
-    floor: Optional[int] = Field(None, description="Étage : RDC=0, sous-sol=-1, 1er étage=1, etc.")
-    nbr_rooms: Optional[int] = Field(None, description="Nombre de pièces principales")
-    nbr_bedrooms: Optional[int] = Field(None, description="Nombre de chambres")
-    nbr_bathrooms: Optional[int] = Field(None, description="Nombre de salles de bain")
-    nbr_door: Optional[int] = Field(None, description="Numéro de porte")
+    floor: int | None = Field(None, description="Étage : RDC=0, sous-sol=-1, 1er étage=1, etc.")
+    nbr_rooms: int | None = Field(None, description="Nombre de pièces principales")
+    nbr_bedrooms: int | None = Field(None, description="Nombre de chambres")
+    nbr_bathrooms: int | None = Field(None, description="Nombre de salles de bain")
+    nbr_door: int | None = Field(None, description="Numéro de porte")
 
 class Cadastre(BaseModel):
     prefixe: str = Field(description="Préfixe cadastral, par défaut 000")
     section: str = Field(description="Section cadastrale : 1 ou 2 lettres uniquement ex: AB")
     num_parcelle: int = Field(description="Numéro de parcelle, entier entre 1 et 9999")
-    adresse: Optional[str] = Field(None, description="Adresse complète du bien cadastré")
+    adresse: str | None = Field(None, description="Adresse complète du bien cadastré")
 
 # Main Class
 class AttestationVente(BaseModel):
     origin: Origine = Field(description="Origine de la mutation : VENTE, HERITAGE, DONATION, etc.")
-    adress: Optional[Adresse] = Field(None, description="Adresse du bien immobilier")
-    lots: Optional[list[Lot]] = Field(None, description="Liste des lots de la copropriété")
-    cadastres: Optional[list[Cadastre]] = Field(None, description="Références cadastrales du bien")
-    nbr_rooms: Optional[int] = Field(None, description="Nombre total de pièces principales")
-    nbr_bedrooms: Optional[int] = Field(None, description="Nombre de chambres")
-    nbr_bathrooms: Optional[int] = Field(None, description="Nombre de salles de bain")
-    surface: Optional[float] = Field(None, description="Surface habitable en m²")
-    price: Optional[float] = Field(None, description="Prix de vente en euros, chiffres uniquement")
-    description: Optional[str] = Field(None, description="Description générale du bien")
+    adress: Adresse | None = Field(None, description="Adresse du bien immobilier")
+    lots: list[Lot] | None = Field(None, description="Liste des lots de la copropriété")
+    cadastres: list[Cadastre] | None = Field(None, description="Références cadastrales du bien")
+    nbr_rooms: int | None = Field(None, description="Nombre total de pièces principales")
+    nbr_bedrooms: int | None = Field(None, description="Nombre de chambres")
+    nbr_bathrooms: int | None = Field(None, description="Nombre de salles de bain")
+    surface: float | None = Field(None, description="Surface habitable en m²")
+    price: float | None = Field(None, description="Prix de vente en euros, chiffres uniquement")
+    description: str | None = Field(None, description="Description générale du bien")
     old_owners: list[Owner] = Field(description="Liste des anciens propriétaires (vendeurs)")
     new_owners: list[Owner] = Field(description="Liste des nouveaux propriétaires (acheteurs)")
 

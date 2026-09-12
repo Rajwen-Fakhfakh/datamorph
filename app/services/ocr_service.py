@@ -1,8 +1,9 @@
-import fitz
 import base64
-from mistralai import Mistral
-from dotenv import load_dotenv
 import os
+
+import fitz
+from dotenv import load_dotenv
+from mistralai import Mistral
 
 load_dotenv()
 MISTRAL_API_KEY=os.getenv("MISTRAL_API_KEY")

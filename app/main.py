@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException,UploadFile
-from app.services.ocr_service import extract_text_from_pdf
-from app.services.llm_service import extract_data
 import os
+
+from fastapi import FastAPI, HTTPException, UploadFile
+
+from app.services.llm_service import extract_data
+from app.services.ocr_service import extract_text_from_pdf
 
 app = FastAPI()
 

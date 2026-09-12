@@ -1,7 +1,10 @@
-from app.models.schemas import AttestationVente
-from mistralai import Mistral
-from dotenv import load_dotenv
 import os
+
+from dotenv import load_dotenv
+from mistralai import Mistral
+from pydantic import ValidationError
+
+from app.models.schemas import AttestationVente
 
 load_dotenv()
 MISTRAL_API_KEY=os.getenv("MISTRAL_API_KEY")
@@ -50,8 +53,7 @@ def call_llm (text:str)->str:
 
     if output.startswith("```"):
         output = output.split("```")[1]
-        if output.startswith("json"):
-            output = output[4:]
+        output = output.removeprefix("json")
     output = output.strip()
     return output
 
@@ -65,7 +67,7 @@ def extract_data(text:str,max_retries:int=3)->AttestationVente:
         output = call_llm(text)
         try:
             return AttestationVente.model_validate_json(output)
-        except Exception as e:
+        except ValidationError as e:
             last_exception = e
             print(f"Error validating JSON: Error Exception : {last_exception} , Attempt {attempt + 1} / {max_retries}")
 
