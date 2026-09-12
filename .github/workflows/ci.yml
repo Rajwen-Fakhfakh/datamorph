@@ -1,0 +1,62 @@
+# Nom affiché dans l'onglet "Actions" de GitHub, et sur le badge de statut
+name: CI
+
+# Déclencheurs : quand ce pipeline doit se lancer
+on:
+  push:
+    branches: [main]          # à chaque push direct sur main
+  pull_request:
+    branches: [main]          # à chaque PR qui vise main (avant le merge)
+
+jobs:
+  test:                        # nom interne du job (visible dans les logs)
+    runs-on: ubuntu-latest      # machine virtuelle fournie par GitHub, recréée à zéro à chaque run
+
+    env:
+      # Variable d'environnement injectée pour toute la durée du job.
+      # app/services/*.py lisent MISTRAL_API_KEY dès l'import du module
+      # (client = Mistral(api_key=...)) : sans cette valeur, l'import planterait
+      # et ferait échouer TOUS les tests, même ceux qui ne touchent pas à Mistral.
+      # Une vraie clé ne doit JAMAIS être écrite ici en clair : elle irait dans
+      # Settings > Secrets and variables > Actions, puis appelée via
+      # ${{ secrets.MISTRAL_API_KEY }}. Ici on n'a pas besoin d'une vraie clé
+      # car tous nos tests mockent les appels réels à l'API.
+      MISTRAL_API_KEY: dummy-key-for-ci
+
+    # Liste ordonnée des actions exécutées les unes après les autres.
+    # Si une étape échoue, les suivantes ne s'exécutent pas (par défaut).
+    steps:
+
+      # Étape 1 : récupère le contenu du repo sur la VM.
+      # Sans ça, la VM est vide et il n'y a rien à tester.
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # Étape 2 : installe Python 3.11 sur la VM (version identique à celle
+      # utilisée en local, pour éviter les écarts de comportement).
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"          # met en cache les dépendances pip entre les runs -> accélère les prochains lancements
+
+      # Étape 3 : installe les dépendances du projet + les outils de CI
+      # (ruff et pytest ne sont utiles qu'en CI/dev, donc pas forcément
+      # dans requirements.txt qui liste plutôt les deps de prod).
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest
+
+      # Étape 4 : linter -> vérifie la qualité/le style du code
+      # (imports inutilisés, erreurs de syntaxe, lignes trop longues...).
+      # Si ruff trouve un problème, il retourne un code d'erreur -> le job échoue ici.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # Étape 5 : lance la suite de tests.
+      # "-v" (verbose) affiche chaque test individuellement dans les logs,
+      # plus lisible que le mode silencieux par défaut.
+      - name: Lancer les tests (pytest)
+        run: pytest tests/ -v
