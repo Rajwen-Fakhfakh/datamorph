@@ -41,8 +41,8 @@ pip install -r requirements.txt
 Créer un fichier `.env` :
 ```
 GEMINI_API_KEY=ta_clé_api
-# Optionnel (défaut : gemini-3.8-flash)
-GEMINI_MODEL=gemini-3.8-flash
+# Optionnel (défaut : gemini-3.5-flash-lite)
+GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
 Une clé gratuite s'obtient sur [Google AI Studio](https://aistudio.google.com/apikey).
