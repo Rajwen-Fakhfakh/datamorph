@@ -14,14 +14,14 @@ jobs:
 
     env:
       # Variable d'environnement injectée pour toute la durée du job.
-      # app/services/*.py lisent MISTRAL_API_KEY dès l'import du module
-      # (client = Mistral(api_key=...)) : sans cette valeur, l'import planterait
-      # et ferait échouer TOUS les tests, même ceux qui ne touchent pas à Mistral.
+      # app/services/gemini_client.py lit GEMINI_API_KEY dès l'import du module
+      # (client = genai.Client(api_key=...)) : sans cette valeur, l'import planterait
+      # et ferait échouer TOUS les tests, même ceux qui ne touchent pas à Gemini.
       # Une vraie clé ne doit JAMAIS être écrite ici en clair : elle irait dans
       # Settings > Secrets and variables > Actions, puis appelée via
-      # ${{ secrets.MISTRAL_API_KEY }}. Ici on n'a pas besoin d'une vraie clé
+      # ${{ secrets.GEMINI_API_KEY }}. Ici on n'a pas besoin d'une vraie clé
       # car tous nos tests mockent les appels réels à l'API.
-      MISTRAL_API_KEY: dummy-key-for-ci
+      GEMINI_API_KEY: dummy-key-for-ci
 
     # Liste ordonnée des actions exécutées les unes après les autres.
     # Si une étape échoue, les suivantes ne s'exécutent pas (par défaut).
@@ -128,7 +128,7 @@ jobs:
       # Compute Engine n'est pas activée sur ce projet) -> évite le problème
       # d'actAs, et c'est aussi une meilleure pratique que d'utiliser le
       # compte par défaut, qui a historiquement des droits larges (rôle Editor).
-      # Note : la vraie MISTRAL_API_KEY n'est PAS injectée ici. Elle doit être
+      # Note : la vraie GEMINI_API_KEY n'est PAS injectée ici. Elle doit être
       # configurée directement sur le service Cloud Run (via la console,
       # Variables & Secrets), pour ne jamais transiter par le pipeline CI.
       - name: Déployer sur Cloud Run

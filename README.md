@@ -5,7 +5,7 @@ DataMorph est une API intelligente qui extrait automatiquement les données stru
 ## 🚀 Stack Technique
 
 - **FastAPI** — Framework API REST
-- **Mistral AI** — OCR + LLM pour l'extraction des données
+- **Google Gemini** — lecture du PDF (OCR) + LLM pour l'extraction des données
 - **Pydantic** — Validation et structuration des données
 - **Python 3.11**
 
@@ -16,8 +16,9 @@ datamorph/
 ├── app/
 │   ├── main.py          # Endpoints FastAPI
 │   ├── services/
-│   │   ├── ocr_service.py   # PDF → texte via Mistral OCR
-│   │   └── llm_service.py   # texte → JSON via Mistral LLM
+│   │   ├── gemini_client.py # Client Gemini partagé (clé API + modèle)
+│   │   ├── ocr_service.py   # PDF → texte via Gemini
+│   │   └── llm_service.py   # texte → JSON via Gemini
 │   └── models/
 │       └── schemas.py   # Modèles Pydantic
 ├── .env                  # Clés API (non commité)
@@ -39,8 +40,14 @@ pip install -r requirements.txt
 
 Créer un fichier `.env` :
 ```
-MISTRAL_API_KEY=ta_clé_api
+GEMINI_API_KEY=ta_clé_api
+# Optionnel (défaut : gemini-3.8-flash)
+GEMINI_MODEL=gemini-3.8-flash
 ```
+
+Une clé gratuite s'obtient sur [Google AI Studio](https://aistudio.google.com/apikey).
+
+> 💡 Les quotas du plan gratuit varient selon le modèle. Si l'API répond lentement ou renvoie une erreur 429, essaie un modèle plus léger (ex : `GEMINI_MODEL=gemini-3.5-flash-lite`). Si un modèle n'est plus disponible (erreur 404), consulte la liste à jour dans Google AI Studio.
 
 ## ▶️ Lancement
 
@@ -54,7 +61,7 @@ Accède à `http://localhost:8000/docs` pour tester l'API via Swagger UI.
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/health` | Vérifie que l'API tourne |
+| GET | `/Health` | Vérifie que l'API tourne |
 | POST | `/extract` | Upload PDF(exemple_attestation_vente.pdf) → retourne un JSON structuré |
 
 ## 📌 Version Actuelle

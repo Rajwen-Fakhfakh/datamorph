@@ -1,11 +1,6 @@
 # Image de base légère avec Python 3.11 (même version que la CI et le dev local)
 FROM python:3.11-slim
 
-# Dépendances système nécessaires à PyMuPDF (fitz) pour manipuler les PDF
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # On copie d'abord uniquement requirements.txt : Docker met en cache cette étape
