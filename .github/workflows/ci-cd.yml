@@ -62,79 +62,8 @@ jobs:
         run: pytest tests/ -v
 
   # ---------------------------------------------------------------------
-  # Job 2 : build de l'image Docker + déploiement sur Cloud Run.
-  # "needs: test" fait que ce job attend que "test" se termine, et ne se
-  # lance QUE s'il a réussi -> jamais de déploiement d'un code qui casse
-  # les tests. Le "if" en plus restreint le déploiement à un vrai push
-  # sur main (pas à une simple PR, où on veut juste valider le code sans
-  # rien déployer).
+  # Pas de job de déploiement ici : le service Render est relié au repo
+  # GitHub et build lui-même l'image à partir du Dockerfile à chaque push
+  # (auto-deploy). La vraie GEMINI_API_KEY est configurée directement sur
+  # le service Render (Environment), elle ne transite jamais par la CI.
   # ---------------------------------------------------------------------
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-
-    env:
-      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}   # ex: datamorph-prod
-      REGION: ${{ secrets.GCP_REGION }}           # ex: europe-west1
-      SERVICE_NAME: datamorph                     # nom du service Cloud Run
-      REPO_NAME: datamorph-repo                   # nom du dépôt Artifact Registry
-
-    steps:
-
-      # Étape 1 : récupère le code (le Dockerfile en a besoin pour build l'image).
-      - name: Checkout du code
-        uses: actions/checkout@v4
-
-      # Étape 2 : authentification auprès de GCP avec la clé JSON du service
-      # account, stockée en secret GitHub. Cette action configure ensuite
-      # automatiquement les credentials pour gcloud ET pour docker (étapes
-      # suivantes) -> pas besoin de gérer soi-même un fichier de clé sur le disque.
-      - name: Authentification GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      # Étape 3 : installe et configure la CLI gcloud sur la VM.
-      - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ env.PROJECT_ID }}
-
-      # Étape 4 : autorise Docker à pousser des images vers Artifact Registry
-      # en réutilisant les credentials gcloud déjà configurés à l'étape 2.
-      - name: Configurer Docker pour Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      # Étape 5 : build de l'image à partir du Dockerfile à la racine.
-      # Deux tags : le SHA du commit (traçabilité exacte -> on sait quelle
-      # version du code tourne en prod) et "latest" (toujours la dernière version).
-      - name: Build de l'image Docker
-        run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
-
-      # Étape 6 : envoi de l'image construite vers Artifact Registry.
-      - name: Push de l'image vers Artifact Registry
-        run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
-
-      # Étape 7 : déploie la nouvelle image sur Cloud Run.
-      # "flags: --service-account=..." force Cloud Run à faire tourner le
-      # conteneur avec datamorph-deployer, plutôt qu'avec le compte de service
-      # par défaut de Compute Engine (qui n'existe même pas ici car l'API
-      # Compute Engine n'est pas activée sur ce projet) -> évite le problème
-      # d'actAs, et c'est aussi une meilleure pratique que d'utiliser le
-      # compte par défaut, qui a historiquement des droits larges (rôle Editor).
-      # Note : la vraie GEMINI_API_KEY n'est PAS injectée ici. Elle doit être
-      # configurée directement sur le service Cloud Run (via la console,
-      # Variables & Secrets), pour ne jamais transiter par le pipeline CI.
-      - name: Déployer sur Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: --service-account=datamorph-deployer@${{ env.PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated

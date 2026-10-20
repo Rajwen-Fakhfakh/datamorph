@@ -12,8 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Puis on copie le reste du code
 COPY app/ ./app/
 
-# Cloud Run fournit dynamiquement le port à écouter via la variable d'env PORT
-# (8080 par défaut) : uvicorn doit s'y adapter, pas utiliser un port fixe.
+# Render fournit dynamiquement le port à écouter via la variable d'env PORT
+# (10000 par défaut) : uvicorn doit s'y adapter, pas utiliser un port fixe.
+# 8080 n'est que la valeur par défaut en local.
 ENV PORT=8080
 EXPOSE 8080
 
