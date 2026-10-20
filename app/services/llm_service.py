@@ -1,36 +1,21 @@
-import os
-
-from dotenv import load_dotenv
-from mistralai import Mistral
+from google.genai import types
 from pydantic import ValidationError
 
 from app.models.schemas import AttestationVente
-
-load_dotenv()
-MISTRAL_API_KEY=os.getenv("MISTRAL_API_KEY")
-client=Mistral(api_key=MISTRAL_API_KEY)
+from app.services.gemini_client import GEMINI_MODEL, client
 
 
-def call_llm (text:str)->str: 
+def call_llm (text:str)->str:
 
-    output =  client.chat.complete(
-        model="mistral-large-latest",
-        messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert in extracting structured data from French real estate documents (attestations de vente, mandats, EDD)."""
-
-                    },
-
-                    {
-                        "role": "user",
-                        "content": f"""
-                        Analyze the document text below step by step : 
+    output = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=f"""
+                        Analyze the document text below step by step :
                         1-Identify the document type
                         2-Extract the relevant information according to the JSON schema provided in the instructions
                         3-Return the extracted information in a raw JSON format that strictly follows the provided schema.
 
-                        INSTRUCTIONS:                        
+                        INSTRUCTIONS:
                         - Return ONLY a raw JSON object, no explanation, no backticks, no ```json``` markers
                         - The JSON must start with {{ and end with }}
                         - If a field is not found in the document, return null
@@ -40,22 +25,16 @@ def call_llm (text:str)->str:
 
                         DOCUMENT TO ANALYZE:
                         {text}
-                        """
-                           
-                        }
-                    ],
-        temperature=0, 
-        max_tokens=1000           
+                        """,
+        config=types.GenerateContentConfig(
+            system_instruction="You are an expert in extracting structured data from French real estate documents (attestations de vente, mandats, EDD).",
+            response_mime_type="application/json",  # force une sortie JSON valide (plus de backticks à nettoyer)
+            temperature=0,
+            max_output_tokens=8192,
+        ),
+    ).text
 
-    
-        ).choices[0].message.content
-
-
-    if output.startswith("```"):
-        output = output.split("```")[1]
-        output = output.removeprefix("json")
-    output = output.strip()
-    return output
+    return (output or "").strip()
 
 
 def extract_data(text:str,max_retries:int=3)->AttestationVente:

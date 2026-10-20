@@ -1,32 +1,23 @@
-import base64
-import os
+from google.genai import types
 
-import fitz
-from dotenv import load_dotenv
-from mistralai import Mistral
+from app.services.gemini_client import GEMINI_MODEL, client
 
-load_dotenv()
-MISTRAL_API_KEY=os.getenv("MISTRAL_API_KEY")
-client=Mistral(api_key=MISTRAL_API_KEY)
+OCR_PROMPT = """Transcribe the full text of this document faithfully, page by page, in Markdown.
+Keep tables, amounts, dates, names and identifiers exactly as written.
+Return only the transcription, with no comment."""
 
-def client_ocr(image_b64:str)->str:
-   return  client.ocr.process(
-    model="mistral-ocr-latest",
-    document={
-        "type": "image_url",
-        "image_url": f"data:image/png;base64,{image_b64}"
-    },
-  
-).pages[0].markdown
 
-def extract_text_from_pdf(path:str)->str: 
-    document=fitz.open(path)
-    res=""
-    for page in document:
+def extract_text_from_pdf(path: str) -> str:
+    # Gemini lit les PDF nativement (y compris scannés) : une seule requête pour tout le document
+    with open(path, "rb") as f:
+        pdf_bytes = f.read()
 
-        img_bytes=page.get_pixmap().tobytes() # convert the image to bytes
-        img_b64=base64.b64encode(img_bytes).decode('utf-8') # encode the bytes to base64 string
-
-        res+= client_ocr(img_b64) #res from mistral ocr
-    return res
-
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[
+            types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf"),
+            OCR_PROMPT,
+        ],
+        config=types.GenerateContentConfig(temperature=0),
+    )
+    return response.text or ""

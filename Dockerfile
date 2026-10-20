@@ -1,11 +1,6 @@
 # Image de base légère avec Python 3.11 (même version que la CI et le dev local)
 FROM python:3.11-slim
 
-# Dépendances système nécessaires à PyMuPDF (fitz) pour manipuler les PDF
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # On copie d'abord uniquement requirements.txt : Docker met en cache cette étape
@@ -17,8 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Puis on copie le reste du code
 COPY app/ ./app/
 
-# Cloud Run fournit dynamiquement le port à écouter via la variable d'env PORT
-# (8080 par défaut) : uvicorn doit s'y adapter, pas utiliser un port fixe.
+# Render fournit dynamiquement le port à écouter via la variable d'env PORT
+# (10000 par défaut) : uvicorn doit s'y adapter, pas utiliser un port fixe.
+# 8080 n'est que la valeur par défaut en local.
 ENV PORT=8080
 EXPOSE 8080
 
