@@ -9,9 +9,9 @@ app = FastAPI()
 
 # Health Check Endpoint
 
-@app.get("/Health")
+@app.get("/health")
 def read_health():
-    return {"message": "Hello, World!"}
+    return {"status": "ok", "message": "Service operational"}
 
 
 # Data Extraction Endpoint
