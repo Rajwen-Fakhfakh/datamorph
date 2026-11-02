@@ -6,16 +6,16 @@ client = TestClient(app)
 
 
 def test_health_status_code():
-    response = client.get("/Health")
+    response = client.get("/health")
     assert response.status_code == 200
 
 
 def test_health_response_content():
-    response = client.get("/Health")
-    assert response.json() == {"message": "Hello, World!"}
+    response = client.get("/health")
+    assert response.json() == {"status": "ok", "message": "Service operational"}
 
 
 def test_health_wrong_method_not_allowed():
-    # /Health n'accepte que GET, un POST doit être rejeté
-    response = client.post("/Health")
+    # /health n'accepte que GET, un POST doit être rejeté
+    response = client.post("/health")
     assert response.status_code == 405
